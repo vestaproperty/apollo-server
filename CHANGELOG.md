@@ -2,6 +2,8 @@
 
 ### vNEXT
 
+- Don't add `cacheControl` directive if one has already been defined. [PR #2428](https://github.com/apollographql/apollo-server/pull/2428)
+
 ### v2.4.8
 
 - No functional changes in this version.  The patch version has been bumped to fix the `README.md` displayed on the [npm package for `apollo-server`](https://npm.im/apollo-server) as a result of a broken publish.  Apologies for the additional noise!
