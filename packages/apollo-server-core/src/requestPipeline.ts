@@ -293,13 +293,17 @@ export async function processGraphQLRequest<TContext>(
     requestContext.operationName =
       (operation && operation.name && operation.name.value) || null;
 
-    await dispatcher.invokeHookAsync(
-      'didResolveOperation',
-      requestContext as WithRequired<
-        typeof requestContext,
-        'document' | 'operation' | 'operationName'
-      >,
-    );
+    try {
+      await dispatcher.invokeHookAsync(
+        'didResolveOperation',
+        requestContext as WithRequired<
+          typeof requestContext,
+          'document' | 'operation' | 'operationName'
+        >,
+      );
+    } catch (err) {
+      return sendErrorResponse(err);
+    }
 
     // Now that we've gone through the pre-execution phases of the request
     // pipeline, and given plugins appropriate ability to object (by throwing
