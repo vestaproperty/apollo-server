@@ -16,7 +16,10 @@ import {
   DocumentNode,
 } from 'graphql';
 import { GraphQLExtension } from 'graphql-extensions';
-import { InMemoryLRUCache } from 'apollo-server-caching';
+import {
+  InMemoryLRUCache,
+  PrefixingKeyValueCache,
+} from 'apollo-server-caching';
 import { ApolloServerPlugin } from 'apollo-server-plugin-base';
 import runtimeSupportsUploads from './utils/runtimeSupportsUploads';
 
@@ -40,8 +43,6 @@ import {
   PluginDefinition,
 } from './types';
 
-import { FormatErrorExtension } from './formatters';
-
 import { gql } from './index';
 
 import {
@@ -55,6 +56,7 @@ import {
   processGraphQLRequest,
   GraphQLRequestContext,
   GraphQLRequest,
+  APQ_CACHE_PREFIX,
 } from './requestPipeline';
 
 import { Headers } from 'apollo-server-env';
@@ -210,11 +212,14 @@ export class ApolloServerBase {
     }
 
     if (requestOptions.persistedQueries !== false) {
-      if (!requestOptions.persistedQueries) {
-        requestOptions.persistedQueries = {
-          cache: requestOptions.cache!,
-        };
-      }
+      requestOptions.persistedQueries = {
+        cache: new PrefixingKeyValueCache(
+          (requestOptions.persistedQueries &&
+            requestOptions.persistedQueries.cache) ||
+            requestOptions.cache!,
+          APQ_CACHE_PREFIX,
+        ),
+      };
     } else {
       // the user does not want to use persisted queries, so we remove the field
       delete requestOptions.persistedQueries;
@@ -327,17 +332,6 @@ export class ApolloServerBase {
     // Note: doRunQuery will add its own extensions if you set tracing,
     // or cacheControl.
     this.extensions = [];
-
-    const debugDefault =
-      process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
-    const debug =
-      requestOptions.debug !== undefined ? requestOptions.debug : debugDefault;
-
-    // Error formatting should happen after the engine reporting agent, so that
-    // engine gets the unmasked errors if necessary
-    this.extensions.push(
-      () => new FormatErrorExtension(requestOptions.formatError, debug),
-    );
 
     // In an effort to avoid over-exposing the API key itself, extract the
     // service ID from the API key for plugins which only needs service ID.
